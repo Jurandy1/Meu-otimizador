@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verifica se os elementos principais existem
     if (!fileInput || !browseButton || !uploadBox) {
         console.error('Um ou mais elementos do DOM não foram encontrados.');
+        alert('Erro: Elementos da página não encontrados. Verifique o console para detalhes.');
         return;
     }
 
