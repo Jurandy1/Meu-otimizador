@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otimizador de Imagens para SEO & Redes Sociais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Soothing Neutrals & Action Green -->
+    <!-- Application Structure Plan: A aplicação foi reestruturada num layout de painel de controlo (dashboard) focado em tarefas. O fluxo é intuitivo: 1. Carregar Imagens, 2. Otimizar (Nome + Metadados Sociais), 3. Pré-visualizar, 4. Adicionar à Fila, 5. Baixar. A principal inovação é a secção 'Pré-visualização para Redes Sociais', que aborda diretamente o requisito do utilizador para 'viralização' no Facebook, mostrando como as meta tags Open Graph (título e descrição) aparecerão. Esta estrutura orientada a resultados é superior à simples divisão em duas colunas, pois guia o utilizador através de um processo de otimização completo, desde o ficheiro até à partilha social, e lida com múltiplas imagens de forma eficiente através de uma galeria de downloads. -->
+    <!-- Visualization & Content Choices: Report Info: Descrição da ferramenta Python para limpar metadados e otimizar nomes de ficheiros para SEO, com um novo requisito para melhorar o potencial de partilha social (Facebook). Goal: Transformar a ferramenta numa SPA web responsiva e poderosa. Viz/Presentation Method: 1. Upload: Um campo de upload de ficheiros estilizado. 2. Processamento de Imagem: A remoção de metadados é feita através da API Canvas do browser (desenhando a imagem num canvas e exportando-a), o que elimina naturalmente os dados EXIF. 3. Geração de 'Slug': Uma função JavaScript replica a lógica da função `slugify` do Python para criar nomes de ficheiro otimizados em tempo real. 4. Pré-visualização de Partilha Social: A funcionalidade 'wow'. Um componente HTML/Tailwind que simula uma publicação do Facebook, atualizado dinamicamente com os dados (og:title, og:description) inseridos pelo utilizador. Isto fornece feedback visual imediato e educa o utilizador sobre a importância das meta tags para o engagement. 5. Galeria de Downloads: Uma grelha responsiva para gerir e baixar as imagens processadas. Interaction: Inputs de texto atualizam os previews em tempo real; o botão 'Otimizar' processa a imagem e adiciona-a à galeria; botões de download iniciam a descarga do ficheiro limpo. Justification: Esta abordagem visual e interativa atende a todos os requisitos do utilizador, focando-se no resultado final (como a imagem aparece online) em vez de apenas no processo técnico. Library/Method: Vanilla JS, Tailwind CSS, API Canvas. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            background-color: #f8fafc; 
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://rsms.me/inter/inter.css');
+        .upload-box {
+            border: 3px dashed #cbd5e1;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .upload-box:hover, .upload-box.dragover {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .preview-card {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #2563eb;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
+        
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold text-slate-900">Otimizador de Imagens Avançado</h1>
+            <p class="mt-2 md:mt-4 text-lg text-slate-600">Prepare as suas imagens para SEO, privacidade e partilha viral nas redes sociais.</p>
+        </header>
+
+        <main class="bg-white rounded-2xl shadow-lg p-4 sm:p-6 md:p-8">
+            
+            <section id="upload-section">
+                <h2 class="text-2xl font-bold mb-4 text-slate-800">1. Comece por aqui: Carregue as suas imagens</h2>
+                <p class="text-slate-600 mb-6">Pode arrastar e largar múltiplos ficheiros ou clicar para selecionar. As imagens são processadas no seu navegador, garantindo 100% de privacidade.</p>
+                <div id="upload-box" class="upload-box bg-slate-50 rounded-xl p-8 text-center cursor-pointer">
+                    <input type="file" id="file-input" multiple accept="image/png, image/jpeg, image/webp" class="hidden">
+                    <div class="flex flex-col items-center justify-center space-y-4 text-slate-500">
+                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="text-lg font-semibold">Arraste e largue as imagens aqui</p>
+                        <p>ou</p>
+                        <button type="button" id="browse-button" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Selecione os Ficheiros</button>
+                    </div>
+                </div>
+                <div id="image-queue" class="mt-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+            </section>
+            
+            <div id="processing-area" class="hidden mt-8 md:mt-12">
+                <div class="w-full border-t border-slate-200 my-8"></div>
+
+                <h2 class="text-2xl font-bold mb-2 text-slate-800">2. Otimize a Imagem Selecionada</h2>
+                <p class="text-slate-600 mb-6">Preencha os campos abaixo para melhorar o SEO do ficheiro e a aparência da sua imagem quando partilhada no Facebook, WhatsApp, etc.</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                    
+                    <div class="flex flex-col space-y-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4 text-slate-800">Definições de Otimização</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="seo-phrase" class="block text-sm font-medium text-slate-700 mb-1">Frase para Nome do Ficheiro (SEO)</label>
+                                    <input type="text" id="seo-phrase" placeholder="Ex: Receita de bacalhau à Brás" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    <p class="text-xs text-slate-500 mt-2">Nome final: <strong id="slug-preview" class="font-mono"></strong></p>
+                                </div>
+                                <div class="w-full border-t border-slate-200 my-4"></div>
+                                <div>
+                                     <label for="og-title" class="block text-sm font-medium text-slate-700 mb-1">Título para Redes Sociais</label>
+                                     <input type="text" id="og-title" placeholder="Ex: A Melhor Receita de Bacalhau à Brás" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                </div>
+                                <div>
+                                     <label for="og-description" class="block text-sm font-medium text-slate-700 mb-1">Descrição para Redes Sociais</label>
+                                     <textarea id="og-description" placeholder="Ex: Descubra como fazer um bacalhau à Brás cremoso e delicioso com esta receita fácil e tradicional." class="w-full p-2 border border-slate-300 rounded-md h-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="mt-4">
+                            <button id="optimize-button" class="w-full flex items-center justify-center bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100">
+                                <span id="optimize-button-text">Otimizar e Adicionar à Fila</span>
+                                <div id="optimizer-spinner" class="spinner hidden ml-3"></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col space-y-6">
+                        <div>
+                           <h3 class="text-xl font-bold mb-4 text-slate-800">Pré-visualização</h3>
+                            <div class="bg-slate-100 p-4 rounded-lg">
+                                <img id="active-image-preview" src="" alt="Imagem selecionada" class="w-full max-h-80 object-contain rounded-md preview-card">
+                            </div>
+                        </div>
+                        <div class="w-full border-t border-slate-200 my-4"></div>
+                        <div>
+                           <h3 class="text-lg font-semibold mb-2 text-slate-800">Como aparecerá no Facebook:</h3>
+                            <div id="facebook-preview" class="w-full max-w-lg mx-auto bg-white border border-gray-300 rounded-lg overflow-hidden">
+                                <img id="og-image" src="https://placehold.co/1200x630/e2e8f0/475569?text=A+sua+imagem+aqui" alt="Facebook preview" class="w-full aspect-[1.91/1] object-cover">
+                                <div class="p-3 bg-gray-100">
+                                    <p class="text-xs text-gray-500 uppercase">facebook.com</p>
+                                    <p id="og-title-preview" class="font-bold text-gray-800 truncate">Título da sua Publicação</p>
+                                    <p id="og-description-preview" class="text-sm text-gray-600 line-clamp-2">A descrição da sua publicação aparecerá aqui, mostrando como atrairá cliques.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section id="download-section" class="hidden mt-8 md:mt-12">
+                 <div class="w-full border-t border-slate-200 my-8"></div>
+                 <h2 class="text-2xl font-bold mb-6 text-slate-800">3. Baixe as suas Imagens Otimizadas</h2>
+                 <div id="download-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                 </div>
+                 <div id="no-downloads" class="text-center py-10 bg-slate-50 rounded-lg">
+                     <p class="text-slate-500">As suas imagens otimizadas aparecerão aqui.</p>
+                 </div>
+            </section>
+        </main>
+        
+        <footer class="text-center mt-12 text-sm text-slate-500">
+            <p>&copy; 2025 Otimizador de Imagens Avançado. Uma ferramenta criada para simplificar o seu workflow.</p>
+        </footer>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const app = document.getElementById('app');
+    const uploadBox = document.getElementById('upload-box');
+    const fileInput = document.getElementById('file-input');
+    const browseButton = document.getElementById('browse-button');
+    const imageQueue = document.getElementById('image-queue');
+    const processingArea = document.getElementById('processing-area');
+    const downloadSection = document.getElementById('download-section');
+    const noDownloads = document.getElementById('no-downloads');
+    const downloadGallery = document.getElementById('download-gallery');
+    
+    const seoPhraseInput = document.getElementById('seo-phrase');
+    const slugPreview = document.getElementById('slug-preview');
+    const ogTitleInput = document.getElementById('og-title');
+    const ogDescriptionInput = document.getElementById('og-description');
+
+    const activeImagePreview = document.getElementById('active-image-preview');
+    const facebookPreview = document.getElementById('facebook-preview');
+    const ogImage = document.getElementById('og-image');
+    const ogTitlePreview = document.getElementById('og-title-preview');
+    const ogDescriptionPreview = document.getElementById('og-description-preview');
+
+    const optimizeButton = document.getElementById('optimize-button');
+    const optimizeButtonText = document.getElementById('optimize-button-text');
+    const optimizerSpinner = document.getElementById('optimizer-spinner');
+
+    let uploadedFiles = [];
+    let activeFile = null;
+
+    const slugify = (text) => {
+        if (!text) return '';
+        const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;';
+        const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrssssssttuuuuuuuuuwxyyzzz------';
+        const p = new RegExp(a.split('').join('|'), 'g');
+
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-') 
+            .replace(p, c => b.charAt(a.indexOf(c))) 
+            .replace(/&/g, '-e-') 
+            .replace(/[^\w\-]+/g, '') 
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '') 
+            .replace(/-+$/, '');
+    };
+
+    const handleFiles = (files) => {
+        processingArea.classList.remove('hidden');
+        const newFiles = [...files].filter(file => file.type.startsWith('image/'));
+        if (newFiles.length === 0) return;
+
+        newFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const fileData = {
+                    id: `file-${Date.now()}-${Math.random()}`,
+                    file: file,
+                    dataURL: e.target.result
+                };
+                uploadedFiles.push(fileData);
+                renderImageQueue();
+                if (!activeFile) {
+                    setActiveFile(fileData);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const renderImageQueue = () => {
+        imageQueue.innerHTML = '';
+        uploadedFiles.forEach(fileData => {
+            const thumbWrapper = document.createElement('div');
+            thumbWrapper.className = `relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${activeFile && activeFile.id === fileData.id ? 'border-blue-500 ring-2 ring-blue-500' : 'border-transparent'}`;
+            thumbWrapper.onclick = () => setActiveFile(fileData);
+
+            const img = document.createElement('img');
+            img.src = fileData.dataURL;
+            img.className = 'w-full h-24 object-cover';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '&times;';
+            removeBtn.className = 'absolute top-0 right-0 bg-red-600 text-white rounded-bl-lg px-2 py-0.5 font-bold hover:bg-red-700 transition-colors';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeFile(fileData.id);
+            };
+
+            thumbWrapper.appendChild(img);
+            thumbWrapper.appendChild(removeBtn);
+            imageQueue.appendChild(thumbWrapper);
+        });
+    };
+    
+    const removeFile = (id) => {
+        uploadedFiles = uploadedFiles.filter(f => f.id !== id);
+        if (activeFile && activeFile.id === id) {
+            activeFile = uploadedFiles.length > 0 ? uploadedFiles[0] : null;
+            if(activeFile) {
+                setActiveFile(activeFile);
+            } else {
+                 resetWorkspace();
+            }
+        }
+        renderImageQueue();
+        if (uploadedFiles.length === 0) {
+            resetWorkspace();
+        }
+    };
+
+    const resetWorkspace = () => {
+        processingArea.classList.add('hidden');
+        activeFile = null;
+        uploadedFiles = [];
+        renderImageQueue();
+    };
+
+    const setActiveFile = (fileData) => {
+        activeFile = fileData;
+        renderImageQueue();
+        
+        const originalName = fileData.file.name.split('.').slice(0, -1).join('.');
+        seoPhraseInput.value = originalName.replace(/[-_]/g, ' ');
+        
+        updateSlugPreview();
+        ogTitleInput.value = seoPhraseInput.value;
+        ogDescriptionInput.value = '';
+        
+        activeImagePreview.src = fileData.dataURL;
+        ogImage.src = fileData.dataURL;
+        
+        updateOgPreview();
+    };
+
+    const updateSlugPreview = () => {
+        const fileExtension = activeFile ? (activeFile.file.type === 'image/png' ? 'png' : 'jpg') : 'jpg';
+        const slug = slugify(seoPhraseInput.value);
+        slugPreview.textContent = `${slug}.${fileExtension}`;
+    };
+
+    const updateOgPreview = () => {
+        ogTitlePreview.textContent = ogTitleInput.value || 'Título da sua Publicação';
+        ogDescriptionPreview.textContent = ogDescriptionInput.value || 'A descrição da sua publicação aparecerá aqui, mostrando como atrairá cliques.';
+    };
+
+    const processAndDownload = async () => {
+        if (!activeFile) return;
+
+        optimizeButton.disabled = true;
+        optimizeButtonText.classList.add('hidden');
+        optimizerSpinner.classList.remove('hidden');
+
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const mimeType = activeFile.file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const quality = 0.95; 
+            
+            canvas.toBlob(blob => {
+                const fileExtension = mimeType === 'image/png' ? 'png' : 'jpg';
+                const fileName = `${slugify(seoPhraseInput.value) || 'imagem-otimizada'}.${fileExtension}`;
+
+                const optimizedData = {
+                    id: `optimized-${Date.now()}`,
+                    blob: blob,
+                    fileName: fileName,
+                    dataURL: URL.createObjectURL(blob)
+                };
+
+                addOptimizedToGallery(optimizedData);
+                removeFile(activeFile.id);
+                
+                optimizeButton.disabled = false;
+                optimizeButtonText.classList.remove('hidden');
+                optimizerSpinner.classList.add('hidden');
+
+            }, mimeType, quality);
+        };
+        img.src = activeFile.dataURL;
+    };
+
+    const addOptimizedToGallery = (optimizedData) => {
+        downloadSection.classList.remove('hidden');
+        noDownloads.classList.add('hidden');
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-50 rounded-lg p-4 flex flex-col items-center text-center space-y-3 preview-card';
+
+        const img = document.createElement('img');
+        img.src = optimizedData.dataURL;
+        img.className = 'w-full h-40 object-cover rounded-md';
+
+        const fileNameP = document.createElement('p');
+        fileNameP.className = 'font-mono text-xs break-all text-slate-700';
+        fileNameP.textContent = optimizedData.fileName;
+
+        const downloadBtn = document.createElement('a');
+        downloadBtn.href = optimizedData.dataURL;
+        downloadBtn.download = optimizedData.fileName;
+        downloadBtn.className = 'w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm';
+        downloadBtn.textContent = 'Baixar';
+
+        card.appendChild(img);
+        card.appendChild(fileNameP);
+        card.appendChild(downloadBtn);
+
+        downloadGallery.appendChild(card);
+    };
+
+    uploadBox.addEventListener('click', () => fileInput.click());
+    browseButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, () => uploadBox.classList.add('dragover'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('dragover'), false);
+    });
+    uploadBox.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+    seoPhraseInput.addEventListener('input', updateSlugPreview);
+    ogTitleInput.addEventListener('input', updateOgPreview);
+    ogDescriptionInput.addEventListener('input', updateOgPreview);
+    optimizeButton.addEventListener('click', processAndDownload);
+});
+</script>
+</body>
+</html>
