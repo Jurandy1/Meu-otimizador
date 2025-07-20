@@ -27,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let uploadedFiles = [];
     let activeFile = null;
 
+    // Verifica se os elementos principais existem
+    if (!fileInput || !browseButton || !uploadBox) {
+        console.error('Um ou mais elementos do DOM não foram encontrados.');
+        return;
+    }
+
     const slugify = (text) => {
         if (!text) return '';
         const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;';
@@ -46,7 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFiles = (files) => {
         processingArea.classList.remove('hidden');
         const newFiles = [...files].filter(file => file.type.startsWith('image/'));
-        if (newFiles.length === 0) return;
+        if (newFiles.length === 0) {
+            alert('Nenhuma imagem válida selecionada.');
+            return;
+        }
 
         newFiles.forEach(file => {
             const reader = new FileReader();
@@ -78,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             img.className = 'w-full h-24 object-cover';
             
             const removeBtn = document.createElement('button');
-            removeBtn.innerHTML = '&times;';
+            removeBtn.innerHTML = '×';
             removeBtn.className = 'absolute top-0 right-0 bg-red-600 text-white rounded-bl-lg px-2 py-0.5 font-bold hover:bg-red-700 transition-colors';
             removeBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -142,7 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const processAllAndDownload = async () => {
-        if (uploadedFiles.length === 0) return;
+        if (uploadedFiles.length === 0) {
+            alert('Nenhuma imagem na fila para otimizar.');
+            return;
+        }
 
         optimizeButton.disabled = true;
         optimizeButtonText.classList.add('hidden');
@@ -150,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const baseSlug = slugify(seoPhraseInput.value) || 'imagem-otimizada';
         const outputFormat = outputFormatSelect.value;
-        const quality = outputFormat === 'image/png' ? undefined : parseInt(qualityInput.value) / 100;
+        const quality = outputFormat === 'image/png' ? undefined : Math.min(Math.max(parseInt(qualityInput.value), 1), 100) / 100;
         const fileExtension = outputFormat === 'image/png' ? 'png' : outputFormat === 'image/jpeg' ? 'jpg' : 'webp';
         const filesToProcess = [...uploadedFiles];
 
@@ -216,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const downloadBtn = document.createElement('a');
         downloadBtn.href = optimizedData.dataURL;
         downloadBtn.download = optimizedData.fileName;
-        downloadBtn.className = 'w-full bg-blue-施行
+        downloadBtn.className = 'w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm';
         downloadBtn.textContent = 'Baixar';
 
         card.appendChild(img);
@@ -226,9 +238,18 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadGallery.appendChild(card);
     };
 
-    uploadBox.addEventListener('click', () => fileInput.click());
-    browseButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    uploadBox.addEventListener('click', () => {
+        console.log('Upload box clicado');
+        fileInput.click();
+    });
+    browseButton.addEventListener('click', () => {
+        console.log('Botão Selecionar Ficheiros clicado');
+        fileInput.click();
+    });
+    fileInput.addEventListener('change', (e) => {
+        console.log('Arquivos selecionados:', e.target.files);
+        handleFiles(e.target.files);
+    });
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         uploadBox.addEventListener(eventName, (e) => {
@@ -242,7 +263,10 @@ document.addEventListener('DOMContentLoaded', () => {
     ['dragleave', 'drop'].forEach(eventName => {
         uploadBox.addEventListener(eventName, () => uploadBox.classList.remove('dragover'), false);
     });
-    uploadBox.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+    uploadBox.addEventListener('drop', (e) => {
+        console.log('Arquivos soltos:', e.dataTransfer.files);
+        handleFiles(e.dataTransfer.files);
+    });
 
     seoPhraseInput.addEventListener('input', updateSlugPreview);
     ogTitleInput.addEventListener('input', updateOgPreview);
